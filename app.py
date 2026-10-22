@@ -1,12 +1,10 @@
-
-       import os
+import os
 from flask import Flask, render_template_string, request, redirect, url_for, session, flash, send_from_directory
 from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 app.secret_key = 'zphs_nandigama_scouts_secret_key'
 
-# ఫైల్స్ అప్లోడ్ చేయడానికి ఫోల్డర్ సెట్టింగ్
 UPLOAD_FOLDER = 'static/uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'pdf', 'doc', 'docx'}
@@ -17,7 +15,6 @@ if not os.path.exists(UPLOAD_FOLDER):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# అడ్మిన్ లాగిన్ వివరాలు
 ADMIN_CREDENTIALS = {
     "sailakshmikalyanam5990@gmail.com": "admin123",
     "sundarrao@gmail.com": "admin123"
@@ -26,7 +23,6 @@ ADMIN_CREDENTIALS = {
 students = []
 monthly_reports = []
 
-# పూర్తి వెబ్‌సైట్ డిజైన్ మరియు లాజిక్ కోడ్ (ఫైల్ అప్లోడ్ ఫీచర్‌తో)
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="te">
@@ -278,7 +274,7 @@ HTML_TEMPLATE = """
                 {% endif %}
                 <div class="bio-content">
                     <h3>
-                        <span>[{{ loop.index }] {{ scout.name }} ({{ scout.category }})</span>
+                        <span>[{{ loop.index }}] {{ scout.name }} ({{ scout.category }})</span>
                         {% if session.get('is_admin') %}
                             <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                                 <a href="/admin/report_form/{{ scout.sl_no }}" class="btn-report">Monthly Report</a>
@@ -356,4 +352,10 @@ def admin_login():
         return redirect(url_for('admin_dashboard'))
     else:
         flash('తప్పు ఈమెయిల్ లేదా పాస్‌వర్డ్!', 'error')
-        return redirect(url_for('index', show_adm 
+        return redirect(url_for('index', show_admin_login=True))
+
+@app.route('/logout')
+def logout():
+    session.pop('is_admin', None)
+    flash('లాగౌట్ అయ్యారు.', 'info')
+    return re
