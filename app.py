@@ -53,9 +53,9 @@ HTML_TEMPLATE = """
         label { display: block; margin-bottom: 5px; font-weight: bold; color: var(--violet); }
         input[type="text"], input[type="password"], input[type="file"], select, textarea { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 4px; box-sizing: border-box; }
         .btn { background-color: var(--green); color: var(--white); border: none; padding: 10px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-edit { background-color: #d97706; color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px; text-decoration: none; display: inline-block; }
-        .btn-report { background-color: var(--blue); color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px; text-decoration: none; display: inline-block; }
-        .btn-delete { background-color: var(--red); color: white; padding: 4px 10px; border-radius: 4px; font-size: 12px; text-decoration: none; display: inline-block; }
+        .btn-edit { background-color: #d97706; color: white; padding: 6px 12px; border-radius: 4px; font-size: 12px; text-decoration: none; display: inline-block; font-weight: bold; }
+        .btn-report { background-color: var(--blue); color: white; padding: 6px 12px; border-radius: 4px; font-size: 12px; text-decoration: none; display: inline-block; font-weight: bold; }
+        .btn-delete { background-color: var(--red); color: white; padding: 6px 12px; border-radius: 4px; font-size: 12px; text-decoration: none; display: inline-block; font-weight: bold; }
         .flash-msg { background-color: #fef2f2; color: #991b1b; padding: 10px; border-radius: 4px; margin-bottom: 15px; border: 1px solid #fecaca; }
         .report-sheet { border: 2px solid #000; padding: 30px; background: #fff; margin-top: 20px; font-family: 'Times New Roman', serif; }
         .report-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 15px; margin-bottom: 20px; }
@@ -276,10 +276,10 @@ HTML_TEMPLATE = """
                     <h3>
                         <span>[{{ loop.index }}] {{ scout.name }} ({{ scout.category }})</span>
                         {% if session.get('is_admin') %}
-                            <div style="display: flex; gap: 5px; flex-wrap: wrap;">
-                                <a href="/admin/report_form/{{ scout.sl_no }}" class="btn-report">Monthly Report</a>
-                                <a href="/admin/edit_form/{{ scout.sl_no }}" class="btn-edit">Edit</a>
-                                <a href="/admin/delete_student/{{ scout.sl_no }}" class="btn-delete" onclick="return confirm('మీరు ఖచ్చితంగా ఈ విద్యార్థిని డిలీట్ చేయాలనుకుంటున్నారా?');">Delete</a>
+                            <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px;">
+                                <a href="/admin/report_form/{{ scout.sl_no }}" class="btn-report">📄 Monthly Report</a>
+                                <a href="/admin/edit_form/{{ scout.sl_no }}" class="btn-edit">✏️ Edit</a>
+                                <a href="/admin/delete_student/{{ scout.sl_no }}" class="btn-delete" onclick="return confirm('మీరు ఖచ్చితంగా ఈ విద్యార్థిని డిలీట్ చేయాలనుకుంటున్నారా?');">🗑️ Delete</a>
                             </div>
                         {% else %}
                             {% set ns = namespace(has_report=False) %}
@@ -307,7 +307,7 @@ HTML_TEMPLATE = """
             </div>
         {% endfor %}
     {% else %}
-        <p style="text-align: center; color: #64748b; padding: 20px;">ప్రస్తుతం ఎలాంటి విద్యార్థులు లేరు. అడ్మిన్ లాగిన్ అయి కొత్త విద్యార్థులను చేర్చండి.</p>
+        <p style="text-align: center; color: #64748b; padding: 20px;">ప్రస్తుతం ఎలాంటి విద్యార్థులు నమోదు చేయబడలేదు. పైన ఉన్న ఫారమ్ ద్వారా కొత్త విద్యార్థులను చేర్చండి.</p>
     {% endif %}
     {% endif %}
 
@@ -355,7 +355,4 @@ def admin_login():
         return redirect(url_for('index', show_admin_login=True))
 
 @app.route('/logout')
-def logout():
-    session.pop('is_admin', None)
-    flash('లాగౌట్ అయ్యారు.', 'info')
-    return re
+    
