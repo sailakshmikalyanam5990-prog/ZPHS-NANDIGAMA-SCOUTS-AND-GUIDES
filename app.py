@@ -383,4 +383,5 @@ def save_report(sl_no):
             "experience": request.form.get('experience')
         }
         global monthly_reports
-        monthly_reports = [r for r in monthly_reports if r['student_s
+        monthly_reports = [r for r in monthly_reports if r['student_sl'] != sl_no]
+        
