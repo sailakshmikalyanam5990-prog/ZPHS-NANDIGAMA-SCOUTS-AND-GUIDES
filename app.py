@@ -261,7 +261,11 @@ HTML_TEMPLATE = """
                 {% endif %}
                 <div style="flex: 1; min-width: 250px;">
                     <h3 style="margin-top: 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 5px; color: var(--violet);">
-                        <span>[{{ loop.index }}] {{ scout[1] }} ({{ scout[2] }})</span>
+                        <span>
+  [{{ loop.index }}] {{ scout[1] }} 
+  ({{ scout[2] }})
+</span>
+
                         {% if session.get('is_admin') %}
                             <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                                 <a href="/admin/report_form/{{ scout[0] }}" class="btn-report">📄 Report</a>
