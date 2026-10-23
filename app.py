@@ -1,4 +1,5 @@
 import os
+import sqlite3
 from flask import Flask, render_template_string, request, redirect, url_for, session, flash, send_from_directory
 from werkzeug.utils import secure_filename
 
@@ -15,13 +16,45 @@ if not os.path.exists(UPLOAD_FOLDER):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# డేటాబేస్ కనెక్షన్ మరియు టేబుల్స్ ఏర్పాటు (పర్మినెంట్ స్టోరేజ్ కోసం)
+def init_db():
+    conn = sqlite3.connect('scouts.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS students (
+            sl_no INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT,
+            category TEXT,
+            uid TEXT,
+            bsg_uid TEXT,
+            father_name TEXT,
+            caste TEXT,
+            class_name TEXT,
+            section TEXT,
+            filename TEXT
+        )
+    ''')
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS reports (
+            student_sl INTEGER PRIMARY KEY,
+            student_name TEXT,
+            classes_attended TEXT,
+            uniform_maint TEXT,
+            remarks TEXT,
+            improvement TEXT,
+            notes_completed TEXT,
+            experience TEXT
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
 ADMIN_CREDENTIALS = {
     "sailakshmikalyanam5990@gmail.com": "admin123",
     "sundarrao@gmail.com": "admin123"
 }
-
-students = []
-monthly_reports = []
 
 HTML_TEMPLATE = """
 <!DOCTYPE html>
@@ -33,7 +66,7 @@ HTML_TEMPLATE = """
     <style>
         body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f8fafc; color: #1e293b; }
         header { background-color: #1d4ed8; color: #ffffff; padding: 20px; text-align: center; border-bottom: 5px solid #6b21a8; }
-        nav { background-color: #6b21a8; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; color: white; font-weight: bold; }
+        nav { background-color: #6b21a8; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; color: white; font-weight: bold; flex-wrap: wrap; gap: 10px; }
         nav a { color: white; text-decoration: none; }
         .container { max-width: 950px; margin: 20px auto; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .form-group { margin-bottom: 15px; }
@@ -113,8 +146,8 @@ HTML_TEMPLATE = """
 
     {% if generate_report_student and session.get('is_admin') %}
         <div style="border: 2px solid #1d4ed8; padding: 20px; border-radius: 8px; background: #eff6ff; margin-bottom: 25px;">
-            <h3 style="color: #1d4ed8; margin-top: 0;">MONTHLY REPORT ({{ generate_report_student.name }})</h3>
-            <form method="POST" action="/admin/save_report/{{ generate_report_student.sl_no }}">
+            <h3 style="color: #1d4ed8; margin-top: 0;">MONTHLY REPORT ({{ generate_report_student[1] }})</h3>
+            <form method="POST" action="/admin/save_report/{{ generate_report_student[0] }}">
                 <div class="form-group"><label>హాజరైన తరగతులు:</label><input type="text" name="classes_attended" required></div>
                 <div class="form-group"><label>యూనిఫాం నిర్వహణ:</label><input type="text" name="uniform_maint" required></div>
                 <div class="form-group"><label>సమీక్షలు / రిమార్క్స్:</label><textarea name="remarks" rows="2" required></textarea></div>
@@ -133,28 +166,28 @@ HTML_TEMPLATE = """
                 <h3>THE BHARAT SCOUTS AND GUIDES</h3>
                 <h2>MONTHLY REPORT</h2>
             </div>
-            <p><strong>Name of the scout :-</strong> {{ view_report.student_name }}</p>
-            <p><strong>Classes attended :-</strong> {{ view_report.classes_attended }}</p>
-            <p><strong>Uniform maintenance :-</strong> {{ view_report.uniform_maint }}</p>
-            <p><strong>Remarks :-</strong> {{ view_report.remarks }}</p>
-            <p><strong>Improvement needed :-</strong> {{ view_report.improvement }}</p>
-            <p><strong>Notes completed :-</strong> {{ view_report.notes_completed }}</p>
-            <p><strong>Experience :-</strong> {{ view_report.experience }}</p>
+            <p><strong>Name of the scout :-</strong> {{ view_report[1] }}</p>
+            <p><strong>Classes attended :-</strong> {{ view_report[2] }}</p>
+            <p><strong>Uniform maintenance :-</strong> {{ view_report[3] }}</p>
+            <p><strong>Remarks :-</strong> {{ view_report[4] }}</p>
+            <p><strong>Improvement needed :-</strong> {{ view_report[5] }}</p>
+            <p><strong>Notes completed :-</strong> {{ view_report[6] }}</p>
+            <p><strong>Experience :-</strong> {{ view_report[7] }}</p>
             <div style="text-align: center; margin-top: 20px;"><a href="/" class="btn" style="text-decoration: none;">హోమ్ పేజీ</a></div>
         </div>
     {% endif %}
 
     {% if edit_student and session.get('is_admin') %}
         <div style="border: 2px solid #d97706; padding: 20px; border-radius: 8px; background: #fffbeb; margin-bottom: 25px;">
-            <h3 style="color: #d97706; margin-top: 0;">ప్రొఫైల్ సవరించు ({{ edit_student.name }})</h3>
-            <form method="POST" action="/admin/edit/{{ edit_student.sl_no }}" enctype="multipart/form-data">
-                <div class="form-group"><label>పేరు:</label><input type="text" name="name" value="{{ edit_student.name }}" required></div>
-                <div class="form-group"><label>కేటగిరీ:</label><select name="category"><option value="Scout" {% if edit_student.category == 'Scout' %}selected{% endif %}>Scout</option><option value="Guide" {% if edit_student.category == 'Guide' %}selected{% endif %}>Guide</option></select></div>
-                <div class="form-group"><label>UID:</label><input type="text" name="uid" value="{{ edit_student.uid }}"></div>
-                <div class="form-group"><label>BSG ID:</label><input type="text" name="bsg_uid" value="{{ edit_student.bsg_uid }}"></div>
-                <div class="form-group"><label>తండ్రి పేరు:</label><input type="text" name="father_name" value="{{ edit_student.father_name }}"></div>
-                <div class="form-group"><label>కులం:</label><input type="text" name="caste" value="{{ edit_student.caste }}"></div>
-                <div class="form-group"><label>తరగతి:</label><input type="text" name="class_name" value="{{ edit_student.class_name }}"></div>
+            <h3 style="color: #d97706; margin-top: 0;">ప్రొఫైల్ సవరించు ({{ edit_student[1] }})</h3>
+            <form method="POST" action="/admin/edit/{{ edit_student[0] }}" enctype="multipart/form-data">
+                <div class="form-group"><label>పేరు:</label><input type="text" name="name" value="{{ edit_student[1] }}" required></div>
+                <div class="form-group"><label>కేటగిరీ:</label><select name="category"><option value="Scout" {% if edit_student[2] == 'Scout' %}selected{% endif %}>Scout</option><option value="Guide" {% if edit_student[2] == 'Guide' %}selected{% endif %}>Guide</option></select></div>
+                <div class="form-group"><label>UID:</label><input type="text" name="uid" value="{{ edit_student[3] }}"></div>
+                <div class="form-group"><label>BSG ID:</label><input type="text" name="bsg_uid" value="{{ edit_student[4] }}"></div>
+                <div class="form-group"><label>తండ్రి పేరు:</label><input type="text" name="father_name" value="{{ edit_student[5] }}"></div>
+                <div class="form-group"><label>కులం:</label><input type="text" name="caste" value="{{ edit_student[6] }}"></div>
+                <div class="form-group"><label>తరగతి:</label><input type="text" name="class_name" value="{{ edit_student[7] }}"></div>
                 <div class="form-group"><label>కొత్త ఫోటో (ఆప్షనల్):</label><input type="file" name="student_file"></div>
                 <button type="submit" class="btn" style="background-color: #d97706;">మార్పులు సేవ్ చేయి</button>
                 <a href="/admin/dashboard" style="margin-left: 10px; color: #64748b; text-decoration: none;">క్యాన్సిల్</a>
@@ -172,29 +205,29 @@ HTML_TEMPLATE = """
         <h3>విద్యార్థుల జాబితా ({{ search_results|length }} మంది):</h3>
         {% for scout in search_results %}
             <div class="bio-card">
-                {% if scout.filename %}
-                    <img src="{{ url_for('uploaded_file', filename=scout.filename) }}" class="student-photo">
+                {% if scout[9] %}
+                    <img src="{{ url_for('uploaded_file', filename=scout[9]) }}" class="student-photo">
                 {% else %}
                     <div class="student-photo" style="display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 12px;">No Photo</div>
                 {% endif %}
                 <div style="flex: 1; min-width: 250px;">
                     <h3 style="margin-top: 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 5px;">
-                        <span>[{{ loop.index }}] {{ scout.name }} ({{ scout.category }})</span>
+                        <span>[{{ loop.index }}] {{ scout[1] }} ({{ scout[2] }})</span>
                         {% if session.get('is_admin') %}
                             <div>
-                                <a href="/admin/report_form/{{ scout.sl_no }}" class="btn-report">Report</a>
-                                <a href="/admin/edit_form/{{ scout.sl_no }}" class="btn-edit">Edit</a>
-                                <a href="/admin/delete_student/{{ scout.sl_no }}" class="btn-delete" onclick="return confirm('డిలీట్ చేయాలా?');">Delete</a>
+                                <a href="/admin/report_form/{{ scout[0] }}" class="btn-report">Report</a>
+                                <a href="/admin/edit_form/{{ scout[0] }}" class="btn-edit">Edit</a>
+                                <a href="/admin/delete_student/{{ scout[0] }}" class="btn-delete" onclick="return confirm('డిలీట్ చేయాలా?');">Delete</a>
                             </div>
                         {% else %}
-                            {% set ns = namespace(has=False) %}
-                            {% for r in monthly_reports %}{% if r.student_sl == scout.sl_no %}{% set ns.has = True %}{% endif %}{% endfor %}
-                            {% if ns.has %}<a href="/view_report/{{ scout.sl_no }}" class="btn-report">View Report</a>{% endif %}
+                            {% set has_rep = namespace(val=False) %}
+                            {% for r in all_reports %}{% if r[0] == scout[0] %}{% set has_rep.val = True %}{% endif %}{% endfor %}
+                            {% if has_rep.val %}<a href="/view_report/{{ scout[0] }}" class="btn-report">View Report</a>{% endif %}
                         {% endif %}
                     </h3>
-                    <p><strong>UID:</strong> {{ scout.uid }} | <strong>BSG ID:</strong> {{ scout.bsg_uid }}</p>
-                    <p><strong>తండ్రి:</strong> {{ scout.father_name }} | <strong>కులం:</strong> {{ scout.caste }} | <strong>తరగతి:</strong> {{ scout.class_name }}</p>
-                    {% if scout.filename %}<p><a href="{{ url_for('uploaded_file', filename=scout.filename) }}" target="_blank" style="color: #1d4ed8;">డాక్యుమెంట్ వీక్షించండి</a></p>{% endif %}
+                    <p><strong>UID:</strong> {{ scout[3] }} | <strong>BSG ID:</strong> {{ scout[4] }}</p>
+                    <p><strong>తండ్రి:</strong> {{ scout[5] }} | <strong>కులం:</strong> {{ scout[6] }} | <strong>తరగతి:</strong> {{ scout[7] }}</p>
+                    {% if scout[9] %}<p><a href="{{ url_for('uploaded_file', filename=scout[9]) }}" target="_blank" style="color: #1d4ed8;">డాక్యుమెంట్ వీక్షించండి</a></p>{% endif %}
                 </div>
             </div>
         {% endfor %}
@@ -211,8 +244,21 @@ HTML_TEMPLATE = """
 def index():
     search_query = request.args.get('search', '').strip().lower()
     show_admin_login = request.args.get('show_admin_login')
-    results = [s for s in students if search_query in s['name'].lower() or search_query in str(s['uid']).lower()] if search_query else students
-    return render_template_string(HTML_TEMPLATE, search_results=results, search_query=search_query, show_admin_login=show_admin_login, monthly_reports=monthly_reports)
+    
+    conn = sqlite3.connect('scouts.db')
+    cursor = conn.cursor()
+    if search_query:
+        cursor.execute("SELECT * FROM students WHERE lower(name) LIKE ? OR lower(uid) LIKE ? OR lower(bsg_uid) LIKE ?", 
+                       (f'%{search_query}%', f'%{search_query}%', f'%{search_query}%'))
+    else:
+        cursor.execute("SELECT * FROM students")
+    results = cursor.fetchall()
+    
+    cursor.execute("SELECT * FROM reports")
+    all_reports = cursor.fetchall()
+    conn.close()
+
+    return render_template_string(HTML_TEMPLATE, search_results=results, search_query=search_query, show_admin_login=show_admin_login, all_reports=all_reports)
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
@@ -235,7 +281,14 @@ def logout():
 @app.route('/admin/dashboard')
 def admin_dashboard():
     if not session.get('is_admin'): return redirect(url_for('index'))
-    return render_template_string(HTML_TEMPLATE, search_results=students, monthly_reports=monthly_reports)
+    conn = sqlite3.connect('scouts.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM students")
+    results = cursor.fetchall()
+    cursor.execute("SELECT * FROM reports")
+    all_reports = cursor.fetchall()
+    conn.close()
+    return render_template_string(HTML_TEMPLATE, search_results=results, all_reports=all_reports)
 
 @app.route('/admin/add_student', methods=['POST'])
 def add_student():
@@ -243,74 +296,78 @@ def add_student():
     file = request.files.get('student_file')
     filename = secure_filename(file.filename) if file and allowed_file(file.filename) else ""
     if filename: file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-    students.append({
-        "sl_no": len(students) + 1, "name": request.form.get('name'), "category": request.form.get('category'),
-        "uid": request.form.get('uid'), "bsg_uid": request.form.get('bsg_uid'), "father_name": request.form.get('father_name'),
-        "caste": request.form.get('caste'), "class_name": request.form.get('class_name'), "filename": filename
-    })
-    flash('విద్యార్థి చేర్చబడ్డారు!', 'success')
+    
+    conn = sqlite3.connect('scouts.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO students (name, category, uid, bsg_uid, father_name, caste, class_name, section, filename)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (
+        request.form.get('name'), request.form.get('category'), request.form.get('uid'),
+        request.form.get('bsg_uid'), request.form.get('father_name'), request.form.get('caste'),
+        request.form.get('class_name'), 'A', filename
+    ))
+    conn.commit()
+    conn.close()
+    
+    flash('విద్యార్థి విజయవంతంగా చేర్చబడ్డారు!', 'success')
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/edit_form/<int:sl_no>')
 def edit_form(sl_no):
     if not session.get('is_admin'): return redirect(url_for('index'))
-    student = next((s for s in students if s['sl_no'] == sl_no), None)
-    return render_template_string(HTML_TEMPLATE, edit_student=student, search_results=students, monthly_reports=monthly_reports)
+    conn = sqlite3.connect('scouts.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM students WHERE sl_no = ?", (sl_no,))
+    student = cursor.fetchone()
+    conn.close()
+    return render_template_string(HTML_TEMPLATE, edit_student=student)
 
 @app.route('/admin/edit/<int:sl_no>', methods=['POST'])
 def edit_student(sl_no):
     if not session.get('is_admin'): return redirect(url_for('index'))
-    student = next((s for s in students if s['sl_no'] == sl_no), None)
-    if student:
-        student.update({
-            "name": request.form.get('name'), "category": request.form.get('category'), "uid": request.form.get('uid'),
-            "bsg_uid": request.form.get('bsg_uid'), "father_name": request.form.get('father_name'), "caste": request.form.get('caste'), "class_name": request.form.get('class_name')
-        })
-        file = request.files.get('student_file')
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
-            student['filename'] = filename
-        flash('నవీకరించబడింది!', 'success')
+    
+    conn = sqlite3.connect('scouts.db')
+    cursor = conn.cursor()
+    
+    file = request.files.get('student_file')
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        cursor.execute('''
+            UPDATE students SET name=?, category=?, uid=?, bsg_uid=?, father_name=?, caste=?, class_name=?, filename=? WHERE sl_no=?
+        ''', (
+            request.form.get('name'), request.form.get('category'), request.form.get('uid'),
+            request.form.get('bsg_uid'), request.form.get('father_name'), request.form.get('caste'),
+            request.form.get('class_name'), filename, sl_no
+        ))
+    else:
+        cursor.execute('''
+            UPDATE students SET name=?, category=?, uid=?, bsg_uid=?, father_name=?, caste=?, class_name=? WHERE sl_no=?
+        ''', (
+            request.form.get('name'), request.form.get('category'), request.form.get('uid'),
+            request.form.get('bsg_uid'), request.form.get('father_name'), request.form.get('caste'),
+            request.form.get('class_name'), sl_no
+        ))
+    
+    conn.commit()
+    conn.close()
+    flash('ప్రొఫైల్ విజయవంతంగా నవీకరించబడింది!', 'success')
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/delete_student/<int:sl_no>')
 def delete_student(sl_no):
     if not session.get('is_admin'): return redirect(url_for('index'))
-    global students, monthly_reports
-    students = [s for s in students if s['sl_no'] != sl_no]
-    monthly_reports = [r for r in monthly_reports if r['student_sl'] != sl_no]
-    flash('తొలగించబడ్డారు!', 'success')
+    conn = sqlite3.connect('scouts.db')
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM students WHERE sl_no = ?", (sl_no,))
+    cursor.execute("DELETE FROM reports WHERE student_sl = ?", (sl_no,))
+    conn.commit()
+    conn.close()
+    flash('విద్యార్థి తొలగించబడ్డారు!', 'success')
     return redirect(url_for('admin_dashboard'))
 
 @app.route('/admin/report_form/<int:sl_no>')
 def report_form(sl_no):
     if not session.get('is_admin'): return redirect(url_for('index'))
-    student = next((s for s in students if s['sl_no'] == sl_no), None)
-    return render_template_string(HTML_TEMPLATE, generate_report_student=student, search_results=students, monthly_reports=monthly_reports)
-
-@app.route('/admin/save_report/<int:sl_no>', methods=['POST'])
-def save_report(sl_no):
-    if not session.get('is_admin'): return redirect(url_for('index'))
-    student = next((s for s in students if s['sl_no'] == sl_no), None)
-    if student:
-        global monthly_reports
-        monthly_reports = [r for r in monthly_reports if r['student_sl'] != sl_no]
-        monthly_reports.append({
-            "student_sl": sl_no, "student_name": student['name'],
-            "classes_attended": request.form.get('classes_attended'), "uniform_maint": request.form.get('uniform_maint'),
-            "remarks": request.form.get('remarks'), "improvement": request.form.get('improvement'),
-            "notes_completed": request.form.get('notes_completed'), "experience": request.form.get('experience')
-        })
-        flash('రిపోర్ట్ సేవ్ అయింది!', 'success')
-    return redirect(url_for('admin_dashboard'))
-
-@app.route('/view_report/<int:sl_no>')
-def view_report(sl_no):
-    report = next((r for r in monthly_reports if r['student_sl'] == sl_no), None)
-    if not report: return redirect(url_for('index'))
-    return render_template_string(HTML_TEMPLATE, view_report=report)
-
-if __name__ == '__main__':
-    app.run(debug=True)
-            
+    conn
