@@ -16,7 +16,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-# మొత్తం 32 మంది విద్యార్థుల ప్రాథమిక సమాచారం
+# 32 మంది విద్యార్థుల జాబితా (మొదటి పేరు కళ్యాణం ప్రశాంత్ కుమార్)
 DEFAULT_STUDENTS = [
     ("కళ్యాణం ప్రశాంత్ కుమార్", "Scout", "UID1001", "BSG1001", "తండ్రి పేరు", "OC", "8th Class", "A", ""),
     ("ఎన్. సాయి కృష్ణ", "Scout", "UID1002", "BSG1002", "రామారావు", "BC-B", "8th Class", "A", ""),
@@ -227,7 +227,7 @@ HTML_TEMPLATE = """
     {% endif %}
 
     {% if edit_student and session.get('is_admin') %}
-        <div style="border: 2px solid #d97706; padding: 20px; border-radius: 8px; background: #fffbeb; margin-bottom: 25px;">
+        <div style="border: 2px solid var(--d97706); padding: 20px; border-radius: 8px; background: #fffbeb; margin-bottom: 25px;">
             <h3 style="color: #d97706; margin-top: 0;">✏️ ప్రొఫైల్ సవరించు (Edit: {{ edit_student[1] }})</h3>
             <form method="POST" action="/admin/edit/{{ edit_student[0] }}" enctype="multipart/form-data">
                 <div class="form-group"><label>విద్యార్థి పేరు:</label><input type="text" name="name" value="{{ edit_student[1] }}" required></div>
@@ -311,4 +311,3 @@ def index():
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    return send_from_dire
