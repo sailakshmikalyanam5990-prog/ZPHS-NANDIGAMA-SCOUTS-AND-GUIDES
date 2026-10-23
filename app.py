@@ -16,6 +16,7 @@ if not os.path.exists(UPLOAD_FOLDER):
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# మొత్తం 32 మంది విద్యార్థుల ప్రాథమిక సమాచారం
 DEFAULT_STUDENTS = [
     ("కళ్యాణం ప్రశాంత్ కుమార్", "Scout", "UID1001", "BSG1001", "తండ్రి పేరు", "OC", "8th Class", "A", ""),
     ("ఎన్. సాయి కృష్ణ", "Scout", "UID1002", "BSG1002", "రామారావు", "BC-B", "8th Class", "A", ""),
@@ -260,7 +261,7 @@ HTML_TEMPLATE = """
                 {% endif %}
                 <div style="flex: 1; min-width: 250px;">
                     <h3 style="margin-top: 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 5px; color: var(--violet);">
-                        <span>[{{ loop.index }] {{ scout[1] }} ({{ scout[2] }})</span>
+                        <span>[{{ loop.index }}] {{ scout[1] }} ({{ scout[2] }})</span>
                         {% if session.get('is_admin') %}
                             <div style="display: flex; gap: 5px; flex-wrap: wrap;">
                                 <a href="/admin/report_form/{{ scout[0] }}" class="btn-report">📄 Report</a>
@@ -310,5 +311,4 @@ def index():
 
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-    
+    return send_from_dire
