@@ -313,5 +313,9 @@ def index():
 
     return render_template_string(HTML_TEMPLATE, search_results=results, search_query=search_query, show_admin_login=show_admin_login, all_reports=all_reports)
 
+
+
+
 @app.route('/uploads/<filename>')
 def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
